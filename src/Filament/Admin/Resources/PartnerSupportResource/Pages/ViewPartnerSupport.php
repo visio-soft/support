@@ -4,11 +4,9 @@ namespace VisioSoft\Support\Filament\Admin\Resources\PartnerSupportResource\Page
 
 use Filament\Actions;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Infolists;
-use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Livewire\Attributes\Validate;
 use VisioSoft\Support\Enums\SupportStatus;
 use VisioSoft\Support\Filament\Admin\Resources\PartnerSupportResource;
 use VisioSoft\Support\Models\PartnerSupportReply;
@@ -17,15 +15,47 @@ class ViewPartnerSupport extends ViewRecord
 {
     protected static string $resource = PartnerSupportResource::class;
 
+    protected static string $view = 'support::filament.admin.pages.view-partner-support';
+
+    #[Validate('required|string|min:3')]
+    public $newMessage = '';
+
+    public $isInternalNote = false;
+
+    public $attachments = [];
+
     protected function getHeaderActions(): array
     {
         return [
             Actions\EditAction::make(),
+            Actions\Action::make('assign')
+                ->label('Assign')
+                ->icon('heroicon-m-user-plus')
+                ->form([
+                    Forms\Components\Select::make('assigned_to')
+                        ->label('Assign to')
+                        ->options(\App\Models\User::pluck('name', 'id'))
+                        ->required()
+                        ->searchable(),
+                ])
+                ->action(function (array $data): void {
+                    $this->record->update([
+                        'assigned_to' => $data['assigned_to'],
+                        'status' => SupportStatus::IN_PROGRESS,
+                    ]);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Ticket assigned successfully')
+                        ->send();
+                })
+                ->visible(fn (): bool => $this->record->assigned_to === null),
+
             Actions\Action::make('assignToMe')
                 ->label('Assign to Me')
-                ->icon('heroicon-o-user-plus')
+                ->icon('heroicon-m-user-plus')
                 ->color('info')
-                ->visible(fn () => $this->record->assigned_to !== auth()->id())
+                ->visible(fn () => $this->record->assigned_to !== auth()->id() && $this->record->isOpen())
                 ->action(function () {
                     $this->record->update([
                         'assigned_to' => auth()->id(),
@@ -37,77 +67,25 @@ class ViewPartnerSupport extends ViewRecord
                         ->success()
                         ->send();
                 }),
-            Actions\Action::make('addReply')
-                ->label('Add Reply')
-                ->icon('heroicon-o-chat-bubble-left-right')
-                ->color('success')
-                ->visible(fn () => $this->record->isOpen())
-                ->form([
-                    Forms\Components\RichEditor::make('content')
-                        ->required()
-                        ->label('Your Reply')
-                        ->placeholder('Type your reply here...'),
 
-                    Forms\Components\Toggle::make('is_internal_note')
-                        ->label('Internal Note (Not visible to customer)')
-                        ->default(false)
-                        ->helperText('Internal notes are only visible to admin users'),
-
-                    Forms\Components\FileUpload::make('attachments')
-                        ->label('Attachments')
-                        ->multiple()
-                        ->disk(config('support.attachments.disk', 'public'))
-                        ->directory(config('support.attachments.path', 'support-attachments'))
-                        ->maxSize(config('support.attachments.max_size', 10240))
-                        ->acceptedFileTypes(array_map(fn ($type) => ".$type", config('support.attachments.allowed_types', [])))
-                        ->visibility('private')
-                        ->helperText('Max file size: ' . (config('support.attachments.max_size', 10240) / 1024) . 'MB'),
-
-                    Forms\Components\Select::make('update_status')
-                        ->label('Update Ticket Status')
-                        ->options(SupportStatus::toSelectArray())
-                        ->default($this->record->status->value)
-                        ->required(),
-                ])
-                ->action(function (array $data) {
-                    PartnerSupportReply::create([
-                        'partner_support_id' => $this->record->id,
-                        'user_id' => auth()->id(),
-                        'content' => $data['content'],
-                        'is_admin_reply' => true,
-                        'is_internal_note' => $data['is_internal_note'] ?? false,
-                        'attachments' => $data['attachments'] ?? null,
-                    ]);
-
-                    // Update ticket status
-                    $this->record->update([
-                        'status' => $data['update_status'],
-                    ]);
-
-                    Notification::make()
-                        ->title('Reply added successfully')
-                        ->success()
-                        ->send();
-
-                    return redirect()->to(static::getResource()::getUrl('view', ['record' => $this->record]));
-                }),
             Actions\Action::make('close')
                 ->label('Close Ticket')
-                ->icon('heroicon-o-check-circle')
+                ->icon('heroicon-m-lock-closed')
                 ->color('success')
                 ->requiresConfirmation()
-                ->visible(fn () => $this->record->isOpen())
+                ->visible(fn (): bool => $this->record->isOpen())
                 ->action(function () {
                     $this->record->close(auth()->id());
 
                     Notification::make()
-                        ->title('Ticket closed successfully')
                         ->success()
+                        ->title('Ticket closed successfully')
                         ->send();
                 }),
+
             Actions\Action::make('reopen')
                 ->label('Reopen Ticket')
-                ->icon('heroicon-o-arrow-path')
+                ->icon('heroicon-m-arrow-path')
                 ->color('warning')
                 ->requiresConfirmation()
                 ->visible(fn () => $this->record->isClosed())
@@ -122,149 +100,55 @@ class ViewPartnerSupport extends ViewRecord
         ];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function sendMessage(): void
     {
-        return $infolist
-            ->schema([
-                Infolists\Components\Section::make('Ticket Details')
-                    ->schema([
-                        Infolists\Components\TextEntry::make('id')
-                            ->label('Ticket #'),
+        $this->validate();
 
-                        Infolists\Components\TextEntry::make('user.name')
-                            ->label('Customer'),
+        if (empty(trim($this->newMessage))) {
+            Notification::make()
+                ->danger()
+                ->title('Message cannot be empty')
+                ->send();
+            return;
+        }
 
-                        Infolists\Components\TextEntry::make('subject')
-                            ->columnSpanFull(),
+        PartnerSupportReply::create([
+            'partner_support_id' => $this->record->id,
+            'user_id' => auth()->id(),
+            'content' => $this->newMessage,
+            'is_admin_reply' => true,
+            'is_internal_note' => $this->isInternalNote,
+            'attachments' => !empty($this->attachments) ? $this->attachments : null,
+        ]);
 
-                        Infolists\Components\TextEntry::make('status')
-                            ->badge()
-                            ->formatStateUsing(fn (SupportStatus $state) => $state->getLabel())
-                            ->color(fn (SupportStatus $state) => $state->getColor()),
-
-                        Infolists\Components\TextEntry::make('priority')
-                            ->badge()
-                            ->formatStateUsing(fn ($state) => $state->getLabel())
-                            ->color(fn ($state) => $state->getColor()),
-
-                        Infolists\Components\TextEntry::make('park_id')
-                            ->label('Park ID')
-                            ->placeholder('N/A'),
-
-                        Infolists\Components\TextEntry::make('assignedTo.name')
-                            ->label('Assigned To')
-                            ->placeholder('Not assigned'),
-
-                        Infolists\Components\TextEntry::make('created_at')
-                            ->dateTime(),
-
-                        Infolists\Components\TextEntry::make('updated_at')
-                            ->dateTime(),
-
-                        Infolists\Components\TextEntry::make('closed_at')
-                            ->dateTime()
-                            ->placeholder('Not closed'),
-
-                        Infolists\Components\TextEntry::make('closedBy.name')
-                            ->label('Closed By')
-                            ->placeholder('N/A'),
-                    ])
-                    ->columns(2),
-
-                Infolists\Components\Section::make('Description')
-                    ->schema([
-                        Infolists\Components\TextEntry::make('content')
-                            ->html()
-                            ->hiddenLabel(),
-                    ]),
-
-                Infolists\Components\Section::make('Public Replies')
-                    ->schema([
-                        Infolists\Components\RepeatableEntry::make('publicReplies')
-                            ->label('')
-                            ->schema([
-                                Infolists\Components\TextEntry::make('user.name')
-                                    ->label('From')
-                                    ->badge()
-                                    ->color(fn (PartnerSupportReply $record) => $record->is_admin_reply ? 'success' : 'info'),
-
-                                Infolists\Components\TextEntry::make('created_at')
-                                    ->label('Date')
-                                    ->dateTime(),
-
-                                Infolists\Components\TextEntry::make('content')
-                                    ->html()
-                                    ->columnSpanFull(),
-
-                                Infolists\Components\TextEntry::make('attachments')
-                                    ->label('Attachments')
-                                    ->formatStateUsing(function ($state) {
-                                        if (empty($state)) {
-                                            return null;
-                                        }
-                                        $disk = config('support.attachments.disk', 'public');
-                                        $html = '<div class="space-y-1">';
-                                        foreach ($state as $attachment) {
-                                            $url = \Storage::disk($disk)->url($attachment);
-                                            $filename = basename($attachment);
-                                            $html .= '<div><a href="' . $url . '" target="_blank" class="text-primary-600 hover:underline">' . $filename . '</a></div>';
-                                        }
-                                        $html .= '</div>';
-                                        return $html;
-                                    })
-                                    ->html()
-                                    ->visible(fn ($state) => !empty($state))
-                                    ->columnSpanFull(),
-                            ])
-                            ->columns(2)
-                            ->columnSpanFull(),
-                    ])
-                    ->visible(fn () => $this->record->publicReplies()->count() > 0)
-                    ->collapsible(),
-
-                Infolists\Components\Section::make('Internal Notes')
-                    ->schema([
-                        Infolists\Components\RepeatableEntry::make('internalNotes')
-                            ->label('')
-                            ->schema([
-                                Infolists\Components\TextEntry::make('user.name')
-                                    ->label('Admin')
-                                    ->badge()
-                                    ->color('warning'),
-
-                                Infolists\Components\TextEntry::make('created_at')
-                                    ->label('Date')
-                                    ->dateTime(),
-
-                                Infolists\Components\TextEntry::make('content')
-                                    ->html()
-                                    ->columnSpanFull(),
-
-                                Infolists\Components\TextEntry::make('attachments')
-                                    ->label('Attachments')
-                                    ->formatStateUsing(function ($state) {
-                                        if (empty($state)) {
-                                            return null;
-                                        }
-                                        $disk = config('support.attachments.disk', 'public');
-                                        $html = '<div class="space-y-1">';
-                                        foreach ($state as $attachment) {
-                                            $url = \Storage::disk($disk)->url($attachment);
-                                            $filename = basename($attachment);
-                                            $html .= '<div><a href="' . $url . '" target="_blank" class="text-primary-600 hover:underline">' . $filename . '</a></div>';
-                                        }
-                                        $html .= '</div>';
-                                        return $html;
-                                    })
-                                    ->html()
-                                    ->visible(fn ($state) => !empty($state))
-                                    ->columnSpanFull(),
-                            ])
-                            ->columns(2)
-                            ->columnSpanFull(),
-                    ])
-                    ->visible(fn () => $this->record->internalNotes()->count() > 0)
-                    ->collapsible(),
+        // Update ticket status if it's a public reply
+        if (!$this->isInternalNote && $this->record->status->value === SupportStatus::WAITING_ADMIN->value) {
+            $this->record->update([
+                'status' => SupportStatus::IN_PROGRESS,
             ]);
+        }
+
+        Notification::make()
+            ->success()
+            ->title($this->isInternalNote ? 'Internal note added' : 'Reply sent successfully')
+            ->send();
+
+        // Reset form
+        $this->newMessage = '';
+        $this->isInternalNote = false;
+        $this->attachments = [];
+
+        // Refresh the record to show new reply
+        $this->record->refresh();
+    }
+
+    public function changeStatus($status): void
+    {
+        $this->record->update(['status' => $status]);
+
+        Notification::make()
+            ->success()
+            ->title('Status updated successfully')
+            ->send();
     }
 }

@@ -17,6 +17,7 @@ class SupportServiceProvider extends PackageServiceProvider
         $package
             ->name('support')
             ->hasConfigFile()
+            ->hasViews()
             ->hasMigrations([
                 'create_partner_support_table',
                 'create_partner_support_replies_table',
