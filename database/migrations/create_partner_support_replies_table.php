@@ -18,12 +18,7 @@ return new class extends Migration
             $table->json('attachments')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
-            // Add foreign key constraint
-            $table->foreign('partner_support_id')
-                ->references('id')
-                ->on('partner_support')
-                ->onDelete('cascade');
+ 
 
             // $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
