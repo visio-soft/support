@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use VisioSoft\Support\Enums\SupportPriority;
 use VisioSoft\Support\Enums\SupportStatus;
+use VisioSoft\Support\Events\SupportTicketAssigned;
+use VisioSoft\Support\Events\SupportTicketClosed;
+use VisioSoft\Support\Events\SupportTicketCreated;
 
 class PartnerSupport extends Model
 {
@@ -33,6 +36,10 @@ class PartnerSupport extends Model
         'status' => SupportStatus::class,
         'priority' => SupportPriority::class,
         'closed_at' => 'datetime',
+    ];
+
+    protected $dispatchesEvents = [
+        'created' => SupportTicketCreated::class,
     ];
 
     public function user(): BelongsTo
@@ -123,6 +130,8 @@ class PartnerSupport extends Model
             'closed_at' => now(),
             'closed_by' => $userId,
         ]);
+
+        event(new SupportTicketClosed($this));
     }
 
     public function reopen(): void
@@ -132,5 +141,15 @@ class PartnerSupport extends Model
             'closed_at' => null,
             'closed_by' => null,
         ]);
+    }
+
+    public function assignTo($userId): void
+    {
+        $this->update([
+            'assigned_to' => $userId,
+            'status' => SupportStatus::IN_PROGRESS,
+        ]);
+
+        event(new SupportTicketAssigned($this, $userId));
     }
 }

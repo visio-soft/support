@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use VisioSoft\Support\Events\SupportReplyAdded;
 
 class PartnerSupportReply extends Model
 {
@@ -28,6 +29,13 @@ class PartnerSupportReply extends Model
         'is_internal_note' => 'boolean',
         'attachments' => 'array',
     ];
+
+    protected static function booted()
+    {
+        static::created(function ($reply) {
+            event(new SupportReplyAdded($reply->partnerSupport, $reply));
+        });
+    }
 
     public function partnerSupport(): BelongsTo
     {
