@@ -11,7 +11,7 @@ This guide will help you integrate the Partner Support plugin into your Filament
 ## Step 1: Install the Package
 
 ```bash
-composer require visio-soft/support
+composer require visio/support
 ```
 
 ## Step 2: Publish and Run Migrations
