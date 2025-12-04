@@ -24,8 +24,28 @@ class ViewPartnerSupport extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->visible(fn () => $this->record->isOpen()),
+            Actions\Action::make('closeTicket')
+                ->label('Talebi Kapat')
+                ->color('danger')
+                ->icon('heroicon-o-x-circle')
+                ->requiresConfirmation()
+                ->modalHeading('Talebi Kapat')
+                ->modalDescription('Bu destek talebini kapatmak istediğinize emin misiniz? Kapatılan taleplere yeni yanıt eklenemez.')
+                ->modalSubmitActionLabel('Evet, Kapat')
+                ->visible(fn () => $this->record->isOpen())
+                ->action(function () {
+                    $this->record->update([
+                        'status' => SupportStatus::CLOSED,
+                        'closed_at' => now(),
+                        'closed_by_id' => auth()->id(),
+                    ]);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Talep Kapatıldı')
+                        ->body('Destek talebi başarıyla kapatıldı.')
+                        ->send();
+                }),
         ];
     }
 
@@ -36,7 +56,7 @@ class ViewPartnerSupport extends ViewRecord
         if (empty(trim($this->newMessage))) {
             Notification::make()
                 ->danger()
-                ->title('Message cannot be empty')
+                ->title('Mesaj boş olamaz')
                 ->send();
             return;
         }
@@ -57,7 +77,7 @@ class ViewPartnerSupport extends ViewRecord
 
         Notification::make()
             ->success()
-            ->title('Reply sent successfully')
+            ->title('Yanıt başarıyla gönderildi')
             ->send();
 
         // Reset form
@@ -66,5 +86,25 @@ class ViewPartnerSupport extends ViewRecord
 
         // Refresh the record to show new reply
         $this->record->refresh();
+        $this->dispatch('reply-sent');
+    }
+
+    public function rateReply(int $replyId, int $rating): void
+    {
+        $reply = \VisioSoft\Support\Models\PartnerSupportReply::find($replyId);
+
+        if (!$reply || !$reply->is_admin_reply) {
+            return;
+        }
+
+        $reply->update(['rating' => $rating]);
+
+        $this->record->refresh();
+
+        Notification::make()
+            ->success()
+            ->title('Teşekkürler')
+            ->body('Geri bildiriminiz için teşekkür ederiz.')
+            ->send();
     }
 }

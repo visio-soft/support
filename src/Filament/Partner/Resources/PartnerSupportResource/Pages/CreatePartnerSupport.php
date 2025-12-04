@@ -13,6 +13,7 @@ class CreatePartnerSupport extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['user_id'] = auth()->id();
+        $data['park_id'] = \Filament\Facades\Filament::getTenant()->id;
         $data['status'] = SupportStatus::OPEN->value;
 
         return $data;

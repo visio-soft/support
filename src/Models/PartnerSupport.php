@@ -47,6 +47,11 @@ class PartnerSupport extends Model
         return $this->belongsTo(config('auth.providers.users.model'), 'user_id');
     }
 
+    public function park(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Park::class);
+    }
+
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(config('auth.providers.users.model'), 'assigned_to');

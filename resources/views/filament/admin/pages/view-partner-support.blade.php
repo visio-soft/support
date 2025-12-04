@@ -2,65 +2,13 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Left Column: Ticket Details --}}
         <div class="lg:col-span-2 space-y-6">
-            {{-- Ticket Header --}}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Ticket #{{ $record->id }}</span>
-                            <x-filament::badge :color="$record->status->getColor()">
-                                {{ $record->status->getLabel() }}
-                            </x-filament::badge>
-                            <x-filament::badge :color="$record->priority->getColor()">
-                                {{ $record->priority->getLabel() }}
-                            </x-filament::badge>
-                        </div>
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ $record->subject }}</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Created by <span class="font-medium">{{ $record->user->name }}</span> on {{ $record->created_at->format('M d, Y H:i') }}
-                        </p>
-                    </div>
-                </div>
-
-                {{-- Quick Status Actions --}}
-                @if($record->isOpen())
-                    <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        @foreach(\VisioSoft\Support\Enums\SupportStatus::cases() as $status)
-                            @if($status->value !== $record->status->value)
-                                <button 
-                                    wire:click="changeStatus('{{ $status->value }}')"
-                                    type="button"
-                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border transition-colors
-                                        {{ $status->getColor() === 'success' ? 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/50' : '' }}
-                                        {{ $status->getColor() === 'warning' ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/50' : '' }}
-                                        {{ $status->getColor() === 'danger' ? 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/50' : '' }}
-                                        {{ $status->getColor() === 'info' ? 'border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/50' : '' }}
-                                        {{ $status->getColor() === 'gray' ? 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-900/50' : '' }}">
-                                    Change to {{ $status->getLabel() }}
-                                </button>
-                            @endif
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-
-            {{-- Original Message --}}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <x-filament::icon icon="heroicon-o-document-text" class="w-5 h-5" />
-                    Original Request
-                </h3>
-                <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
-                    {!! $record->content !!}
-                </div>
-            </div>
-
             {{-- Conversation Thread --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <x-filament::icon icon="heroicon-o-chat-bubble-left-right" class="w-5 h-5" />
-                        Conversation ({{ $record->replies()->count() }} {{ $record->replies()->count() === 1 ? 'reply' : 'replies' }})
+                        <span>Konuşma</span>
+                        <span class="text-gray-500 font-normal text-xs">({{ $record->replies()->count() }} yanıt)</span>
                     </h3>
                 </div>
 
@@ -79,12 +27,18 @@
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="font-medium text-gray-900 dark:text-white">{{ $reply->user->name }}</span>
                                         @if($reply->is_admin_reply)
-                                            <x-filament::badge color="success" size="xs">Admin</x-filament::badge>
+                                            <x-filament::badge color="success" size="xs">Yönetici</x-filament::badge>
+                                        @endif
+                                        @if($reply->is_admin_reply && $reply->rating)
+                                            <div class="flex items-center gap-1 ml-2 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-100 dark:border-yellow-900/30">
+                                                <span class="text-xs font-medium text-yellow-700 dark:text-yellow-500">{{ $reply->rating }}</span>
+                                                <x-filament::icon icon="heroicon-s-star" class="w-3 h-3 text-yellow-400" />
+                                            </div>
                                         @endif
                                         @if($reply->is_internal_note)
                                             <x-filament::badge color="warning" size="xs">
                                                 <x-filament::icon icon="heroicon-o-lock-closed" class="w-3 h-3 mr-1" />
-                                                Internal Note
+                                                Dahili Not (Sadece Yöneticiler)
                                             </x-filament::badge>
                                         @endif
                                         <span class="text-xs text-gray-500 dark:text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>
@@ -108,10 +62,6 @@
                             </div>
                         </div>
                     @empty
-                        <div class="p-8 text-center text-gray-500 dark:text-gray-400">
-                            <x-filament::icon icon="heroicon-o-chat-bubble-left-right" class="w-12 h-12 mx-auto mb-2 opacity-50" />
-                            <p class="text-sm">No replies yet. Be the first to respond!</p>
-                        </div>
                     @endforelse
                 </div>
 
@@ -125,7 +75,7 @@
                                         wire:model="newMessage"
                                         rows="3"
                                         class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                        placeholder="Type your message here..."
+                                        placeholder="Mesajınızı buraya yazın..."
                                     ></textarea>
                                     @error('newMessage')
                                         <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -140,12 +90,12 @@
                                                 wire:model="isInternalNote"
                                                 class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-800"
                                             >
-                                            <span class="text-sm text-gray-700 dark:text-gray-300">Internal Note</span>
+                                            <span class="text-sm text-gray-700 dark:text-gray-300">Dahili Not</span>
                                         </label>
                                         @if($isInternalNote)
                                             <span class="text-xs text-yellow-600 dark:text-yellow-400">
                                                 <x-filament::icon icon="heroicon-o-lock-closed" class="w-3 h-3 inline" />
-                                                Only visible to admins
+                                                Sadece yöneticiler görebilir
                                             </span>
                                         @endif
                                     </div>
@@ -157,8 +107,8 @@
                                     >
                                         <x-filament::icon icon="heroicon-o-paper-airplane" class="w-4 h-4" wire:loading.remove />
                                         <x-filament::loading-indicator class="h-4 w-4" wire:loading />
-                                        <span wire:loading.remove>Send {{ $isInternalNote ? 'Note' : 'Reply' }}</span>
-                                        <span wire:loading>Sending...</span>
+                                        <span wire:loading.remove>{{ $isInternalNote ? 'Not' : 'Yanıt' }} Gönder</span>
+                                        <span wire:loading>Gönderiliyor...</span>
                                     </button>
                                 </div>
                             </div>
@@ -168,10 +118,67 @@
                     <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 text-center">
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                             <x-filament::icon icon="heroicon-o-lock-closed" class="w-4 h-4 inline" />
-                            This ticket is closed. Reopen it to add more replies.
+                            Bu talep kapalı. Yanıt eklemek için yeniden açın.
                         </p>
                     </div>
                 @endif
+            </div>
+
+            {{-- Ticket Header & Request --}}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-start justify-between">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Talep #{{ $record->id }}</span>
+                                <x-filament::badge :color="$record->status->getColor()">
+                                    {{ $record->status->getLabel() }}
+                                </x-filament::badge>
+                                <x-filament::badge :color="$record->priority->getColor()">
+                                    {{ $record->priority->getLabel() }}
+                                </x-filament::badge>
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ $record->subject }}</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ $record->user->name }}</span> tarafından {{ $record->created_at->format('d.m.Y H:i') }} tarihinde oluşturuldu
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Quick Status Actions --}}
+                    @if($record->isOpen())
+                        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Hızlı İşlemler</h4>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(\VisioSoft\Support\Enums\SupportStatus::cases() as $status)
+                                    @if($status->value !== $record->status->value)
+                                        <button 
+                                            wire:click="changeStatus('{{ $status->value }}')"
+                                            type="button"
+                                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border transition-colors
+                                                {{ $status->getColor() === 'success' ? 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/50' : '' }}
+                                                {{ $status->getColor() === 'warning' ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/50' : '' }}
+                                                {{ $status->getColor() === 'danger' ? 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/50' : '' }}
+                                                {{ $status->getColor() === 'info' ? 'border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/50' : '' }}
+                                                {{ $status->getColor() === 'gray' ? 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-900/50' : '' }}">
+                                            {{ $status->getLabel() }}
+                                        </button>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                
+                <div class="p-6 bg-gray-50/50 dark:bg-gray-900/10">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <x-filament::icon icon="heroicon-o-document-text" class="w-5 h-5 text-gray-400" />
+                        Talep İçeriği
+                    </h3>
+                    <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 text-sm">
+                        {!! $record->content !!}
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -179,86 +186,89 @@
         <div class="space-y-6">
             {{-- Ticket Info --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Ticket Information</h3>
-                <dl class="space-y-3">
-                    @if($record->park_id)
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Talep Bilgileri</h3>
+                <dl class="space-y-4">
+                    <div class="flex items-start gap-6">
                         <div>
-                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Park ID</dt>
-                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">#{{ $record->park_id }}</dd>
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Durum</dt>
+                            <dd>
+                                <x-filament::badge :color="$record->status->getColor()">
+                                    {{ $record->status->getLabel() }}
+                                </x-filament::badge>
+                            </dd>
                         </div>
-                    @endif
-                    
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Status</dt>
-                        <dd class="mt-1">
-                            <x-filament::badge :color="$record->status->getColor()">
-                                {{ $record->status->getLabel() }}
-                            </x-filament::badge>
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Priority</dt>
-                        <dd class="mt-1">
-                            <x-filament::badge :color="$record->priority->getColor()">
-                                {{ $record->priority->getLabel() }}
-                            </x-filament::badge>
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Assigned To</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ $record->assignedTo?->name ?? 'Unassigned' }}
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Customer</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $record->user->name }}</dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Created</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $record->created_at->format('M d, Y H:i') }}</dd>
-                    </div>
-
-                    <div>
-                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Last Updated</dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $record->updated_at->diffForHumans() }}</dd>
-                    </div>
-
-                    @if($record->closed_at)
                         <div>
-                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Closed At</dt>
-                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $record->closed_at->format('M d, Y H:i') }}</dd>
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Öncelik</dt>
+                            <dd>
+                                <x-filament::badge :color="$record->priority->getColor()">
+                                    {{ $record->priority->getLabel() }}
+                                </x-filament::badge>
+                            </dd>
                         </div>
-                    @endif
+                    </div>
 
-                    @if($record->closedBy)
+                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
                         <div>
-                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Closed By</dt>
-                            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $record->closedBy->name }}</dd>
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Müşteri</dt>
+                            <dd class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $record->user->name }}</dd>
                         </div>
-                    @endif
+
+                        <div>
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Atanan Kişi</dt>
+                            <dd class="text-sm text-gray-900 dark:text-white mt-0.5">{{ $record->assignedTo?->name ?? 'Atanmamış' }}</dd>
+                        </div>
+
+                        @if($record->park_id)
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Park ID</dt>
+                                <dd class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">#{{ $record->park_id }}</dd>
+                            </div>
+                        @endif
+
+                        <div>
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Oluşturma Tarih Saat</dt>
+                            <dd class="text-sm text-gray-900 dark:text-white mt-0.5">{{ $record->created_at->format('d.m.Y H:i') }}</dd>
+                        </div>
+
+                        <div>
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Son Güncelleme</dt>
+                            <dd class="text-sm text-gray-900 dark:text-white mt-0.5">{{ $record->updated_at->diffForHumans() }}</dd>
+                        </div>
+
+                        @if($record->closed_at)
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Kapatıldı</dt>
+                                <dd class="text-sm text-gray-900 dark:text-white mt-0.5">{{ $record->closed_at->format('d.m.Y H:i') }}</dd>
+                            </div>
+                        @endif
+
+                        @if($record->closedBy)
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">Kapatan Kişi</dt>
+                                <dd class="text-sm text-gray-900 dark:text-white mt-0.5">{{ $record->closedBy->name }}</dd>
+                            </div>
+                        @endif
+                    </div>
                 </dl>
             </div>
 
             {{-- Activity Summary --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Activity</h3>
-                <dl class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <dt class="text-xs text-gray-500 dark:text-gray-400">Total Replies</dt>
-                        <dd class="text-sm font-semibold text-gray-900 dark:text-white">{{ $record->replies()->count() }}</dd>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Aktivite</h3>
+                <dl class="space-y-4">
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Toplam Yanıt</dt>
+                        <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ $record->replies()->count() }}</dd>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <dt class="text-xs text-gray-500 dark:text-gray-400">Public Replies</dt>
-                        <dd class="text-sm font-semibold text-gray-900 dark:text-white">{{ $record->publicReplies()->count() }}</dd>
+                    
+                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Herkese Açık Yanıtlar</dt>
+                        <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ $record->publicReplies()->count() }}</dd>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <dt class="text-xs text-gray-500 dark:text-gray-400">Internal Notes</dt>
-                        <dd class="text-sm font-semibold text-gray-900 dark:text-white">{{ $record->internalNotes()->count() }}</dd>
+
+                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Dahili Notlar</dt>
+                        <dd class="text-sm font-medium text-gray-900 dark:text-white">{{ $record->internalNotes()->count() }}</dd>
                     </div>
                 </dl>
             </div>

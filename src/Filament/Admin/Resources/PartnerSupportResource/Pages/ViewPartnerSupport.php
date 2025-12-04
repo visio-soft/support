@@ -29,11 +29,11 @@ class ViewPartnerSupport extends ViewRecord
         return [
             Actions\EditAction::make(),
             Actions\Action::make('assign')
-                ->label('Assign')
+                ->label('Ata')
                 ->icon('heroicon-m-user-plus')
                 ->form([
                     Forms\Components\Select::make('assigned_to')
-                        ->label('Assign to')
+                        ->label('Kime Ata')
                         ->options(\App\Models\User::pluck('name', 'id'))
                         ->required()
                         ->searchable(),
@@ -46,13 +46,13 @@ class ViewPartnerSupport extends ViewRecord
 
                     Notification::make()
                         ->success()
-                        ->title('Ticket assigned successfully')
+                        ->title('Talep başarıyla atandı')
                         ->send();
                 })
                 ->visible(fn (): bool => $this->record->assigned_to === null),
 
             Actions\Action::make('assignToMe')
-                ->label('Assign to Me')
+                ->label('Bana Ata')
                 ->icon('heroicon-m-user-plus')
                 ->color('info')
                 ->visible(fn () => $this->record->assigned_to !== auth()->id() && $this->record->isOpen())
@@ -63,13 +63,13 @@ class ViewPartnerSupport extends ViewRecord
                     ]);
 
                     Notification::make()
-                        ->title('Ticket assigned to you')
+                        ->title('Talep size atandı')
                         ->success()
                         ->send();
                 }),
 
             Actions\Action::make('close')
-                ->label('Close Ticket')
+                ->label('Talebi Kapat')
                 ->icon('heroicon-m-lock-closed')
                 ->color('success')
                 ->requiresConfirmation()
@@ -79,12 +79,12 @@ class ViewPartnerSupport extends ViewRecord
 
                     Notification::make()
                         ->success()
-                        ->title('Ticket closed successfully')
+                        ->title('Talep başarıyla kapatıldı')
                         ->send();
                 }),
 
             Actions\Action::make('reopen')
-                ->label('Reopen Ticket')
+                ->label('Talebi Yeniden Aç')
                 ->icon('heroicon-m-arrow-path')
                 ->color('warning')
                 ->requiresConfirmation()
@@ -93,7 +93,7 @@ class ViewPartnerSupport extends ViewRecord
                     $this->record->reopen();
 
                     Notification::make()
-                        ->title('Ticket reopened successfully')
+                        ->title('Talep başarıyla yeniden açıldı')
                         ->success()
                         ->send();
                 }),
@@ -107,7 +107,7 @@ class ViewPartnerSupport extends ViewRecord
         if (empty(trim($this->newMessage))) {
             Notification::make()
                 ->danger()
-                ->title('Message cannot be empty')
+                ->title('Mesaj boş olamaz')
                 ->send();
             return;
         }
@@ -130,7 +130,7 @@ class ViewPartnerSupport extends ViewRecord
 
         Notification::make()
             ->success()
-            ->title($this->isInternalNote ? 'Internal note added' : 'Reply sent successfully')
+            ->title($this->isInternalNote ? 'Dahili not eklendi' : 'Yanıt başarıyla gönderildi')
             ->send();
 
         // Reset form
@@ -148,7 +148,7 @@ class ViewPartnerSupport extends ViewRecord
 
         Notification::make()
             ->success()
-            ->title('Status updated successfully')
+            ->title('Durum başarıyla güncellendi')
             ->send();
     }
 }
