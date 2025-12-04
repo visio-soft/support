@@ -19,11 +19,11 @@ class PartnerSupportResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
-    protected static ?string $navigationLabel = 'Support Tickets';
+    protected static ?string $navigationLabel = 'Destek Talepleri';
 
-    protected static ?string $modelLabel = 'Support Ticket';
+    protected static ?string $modelLabel = 'Destek Talebi';
 
-    protected static ?string $pluralModelLabel = 'Support Tickets';
+    protected static ?string $pluralModelLabel = 'Destek Talepleri';
 
     protected static ?int $navigationSort = 10;
 
@@ -31,30 +31,30 @@ class PartnerSupportResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Ticket Information')
+                Forms\Components\Section::make('Talep Bilgileri')
                     ->schema([
                         Forms\Components\Hidden::make('user_id')
                             ->default(fn () => auth()->id()),
 
-                        Forms\Components\TextInput::make('park_id')
-                            ->label('Park ID')
-                            ->numeric()
-                            ->placeholder('Enter park ID if applicable'),
+                        Forms\Components\Hidden::make('park_id')
+                            ->default(fn () => \Filament\Facades\Filament::getTenant()->id),
 
                         Forms\Components\TextInput::make('subject')
+                            ->label('Konu')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Brief description of your issue'),
+                            ->placeholder('Sorununuzla ilgili kısa bir açıklama'),
 
                         Forms\Components\Select::make('priority')
+                            ->label('Öncelik')
                             ->options(SupportPriority::toSelectArray())
                             ->default(SupportPriority::NORMAL->value)
                             ->required(),
 
                         Forms\Components\RichEditor::make('content')
                             ->required()
-                            ->label('Description')
-                            ->placeholder('Please provide detailed information about your issue')
+                            ->label('Açıklama')
+                            ->placeholder('Lütfen sorununuz hakkında detaylı bilgi verin')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -66,22 +66,25 @@ class PartnerSupportResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('Ticket #')
+                    ->label('Talep #')
                     ->sortable()
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('subject')
+                    ->label('Konu')
                     ->searchable()
                     ->sortable()
                     ->limit(50),
 
                 Tables\Columns\TextColumn::make('status')
+                    ->label('Durum')
                     ->badge()
                     ->formatStateUsing(fn (SupportStatus $state) => $state->getLabel())
                     ->color(fn (SupportStatus $state) => $state->getColor())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('priority')
+                    ->label('Öncelik')
                     ->badge()
                     ->formatStateUsing(fn (SupportPriority $state) => $state->getLabel())
                     ->color(fn (SupportPriority $state) => $state->getColor())
@@ -89,32 +92,35 @@ class PartnerSupportResource extends Resource
 
                 Tables\Columns\TextColumn::make('replies_count')
                     ->counts('replies')
-                    ->label('Replies')
+                    ->label('Yanıtlar')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Oluşturulma Tarihi')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Güncellenme Tarihi')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('Durum')
                     ->options(SupportStatus::toSelectArray())
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('priority')
+                    ->label('Öncelik')
                     ->options(SupportPriority::toSelectArray())
                     ->multiple(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn (PartnerSupport $record) => $record->isOpen()),
+                Tables\Actions\ViewAction::make()
+                    ->label('Görüntüle'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -138,7 +144,6 @@ class PartnerSupportResource extends Resource
             'index' => Pages\ListPartnerSupports::route('/'),
             'create' => Pages\CreatePartnerSupport::route('/create'),
             'view' => Pages\ViewPartnerSupport::route('/{record}'),
-            'edit' => Pages\EditPartnerSupport::route('/{record}/edit'),
         ];
     }
 

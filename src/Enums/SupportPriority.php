@@ -12,10 +12,10 @@ enum SupportPriority: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::LOW => 'Low',
+            self::LOW => 'Düşük',
             self::NORMAL => 'Normal',
-            self::HIGH => 'High',
-            self::URGENT => 'Urgent',
+            self::HIGH => 'Yüksek',
+            self::URGENT => 'Acil',
         };
     }
 

@@ -21,12 +21,14 @@ class PartnerSupportReply extends Model
         'content',
         'is_admin_reply',
         'is_internal_note',
+        'rating',
         'attachments',
     ];
 
     protected $casts = [
         'is_admin_reply' => 'boolean',
         'is_internal_note' => 'boolean',
+        'rating' => 'integer',
         'attachments' => 'array',
     ];
 

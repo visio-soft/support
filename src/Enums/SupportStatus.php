@@ -14,12 +14,12 @@ enum SupportStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::OPEN => 'Open',
-            self::IN_PROGRESS => 'In Progress',
-            self::WAITING_CUSTOMER => 'Waiting for Customer',
-            self::WAITING_ADMIN => 'Waiting for Admin',
-            self::RESOLVED => 'Resolved',
-            self::CLOSED => 'Closed',
+            self::OPEN => 'Açık',
+            self::IN_PROGRESS => 'İşlemde',
+            self::WAITING_CUSTOMER => 'Müşteri Yanıtı Bekleniyor',
+            self::WAITING_ADMIN => 'Yönetici Yanıtı Bekleniyor',
+            self::RESOLVED => 'Çözüldü',
+            self::CLOSED => 'Kapalı',
         };
     }
 
