@@ -25,6 +25,8 @@ class PartnerSupportReply extends Model
         'attachments',
     ];
 
+    protected $touches = ['partnerSupport'];
+
     protected $casts = [
         'is_admin_reply' => 'boolean',
         'is_internal_note' => 'boolean',

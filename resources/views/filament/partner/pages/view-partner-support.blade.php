@@ -77,7 +77,7 @@
                                         <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                                             <div class="flex items-center gap-2">
                                                 <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                    {{ $reply->rating ? 'Verdiğiniz Puan (' . $reply->rating . '/5):' : 'Bu yanıtı değerlendirin:' }}
+                                                    {{ $reply->rating ? 'Verdiğiniz Puan:' : 'Bu yanıtı değerlendirin:' }}
                                                 </span>
                                             <button 
                                                 type="button"
@@ -91,10 +91,11 @@
                                                     @if($star <= $userRating)
                                                         {{-- Filled Star (Yellow) --}}
                                                         <svg 
-                                                            class="w-5 h-5 text-yellow-400" 
+                                                            class="w-5 h-5" 
+                                                            style="color: #facc15;"
                                                             xmlns="http://www.w3.org/2000/svg" 
                                                             viewBox="0 0 24 24" 
-                                                            fill="currentColor" 
+                                                            fill="#facc15" 
                                                             aria-hidden="true"
                                                         >
                                                             <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
@@ -112,9 +113,6 @@
                                                         </svg>
                                                     @endif
                                                 @endforeach
-                                                @if($userRating > 0)
-                                                    <span class="ml-1 text-sm font-medium text-yellow-600 dark:text-yellow-400">({{ $userRating }})</span>
-                                                @endif
                                             </button>
                                         </div>
                                     </div>
@@ -184,78 +182,41 @@
 
         {{-- Combined Ticket Details --}}
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Talep #{{ $record->id }}</span>
-                            <x-filament::badge :color="$record->status->getColor()">
-                                {{ $record->status->getLabel() }}
-                            </x-filament::badge>
-                            <x-filament::badge :color="$record->priority->getColor()">
-                                {{ $record->priority->getLabel() }}
-                            </x-filament::badge>
-                        </div>
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ $record->subject }}</h2>
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-                            <span>{{ $record->created_at->format('d.m.Y H:i') }} tarihinde oluşturuldu</span>
-                            <span>&bull;</span>
-                            <span>Son güncelleme: {{ $record->updated_at->diffForHumans() }}</span>
-                            @if($record->closed_at)
-                                <span>&bull;</span>
-                                <span>Kapatıldı: {{ $record->closed_at->format('d.m.Y H:i') }}</span>
-                            @endif
-                        </div>
-                    </div>
-
-                    @if($record->assignedTo)
-                        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
-                            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                                {{ substr($record->assignedTo->name, 0, 1) }}
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Atanan Uzman</p>
-                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $record->assignedTo->name }}</p>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                {{-- Quick Status Actions --}}
-                @if($record->isOpen())
-                    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Hızlı İşlemler</h4>
-                        <div class="flex flex-wrap gap-2">
-                            @foreach(\VisioSoft\Support\Enums\SupportStatus::cases() as $status)
-                                @if($status->value !== $record->status->value)
-                                    <button
-                                        wire:click="changeStatus('{{ $status->value }}')"
-                                        type="button"
-                                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border transition-colors
-                                            {{ $status->getColor() === 'success' ? 'border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/50' : '' }}
-                                            {{ $status->getColor() === 'warning' ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/50' : '' }}
-                                            {{ $status->getColor() === 'danger' ? 'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/50' : '' }}
-                                            {{ $status->getColor() === 'info' ? 'border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/50' : '' }}
-                                            {{ $status->getColor() === 'gray' ? 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-900/50' : '' }}">
-                                        {{ $status->getLabel() }}
-                                    </button>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
+    <div class="p-6 flex flex-col md:flex-row">
+        <!-- Left column: ticket details -->
+        <div class="md:w-1/3 space-y-4">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Talep #{{ $record->id }}</span>
+                <x-filament::badge :color="$record->status->getColor()">
+                    {{ $record->status->getLabel() }}
+                </x-filament::badge>
+                <x-filament::badge :color="$record->priority->getColor()">
+                    {{ $record->priority->getLabel() }}
+                </x-filament::badge>
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                <p><strong>Durum:</strong> {{ $record->status->getLabel() }}</p>
+                <p><strong>Öncelik:</strong> {{ $record->priority->getLabel() }}</p>
+                <p><strong>Müşteri:</strong> {{ $record->user->name }}</p>
+                <p><strong>Atanan Kişi:</strong> {{ $record->assignedTo ? $record->assignedTo->name : 'Atanmamış' }}</p>
+                <p><strong>Park ID:</strong> #{{ $record->park_id ?? '' }}</p>
+                <p><strong>Oluşturma Tarih Saat:</strong> {{ $record->created_at->format('d.m.Y H:i') }}</p>
+                <p><strong>Son Güncelleme:</strong> {{ $record->updated_at->diffForHumans() }}</p>
             </div>
 
-            <div class="p-6 bg-gray-50/50 dark:bg-gray-900/10">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <x-filament::icon icon="heroicon-o-document-text" class="w-5 h-5 text-gray-400" />
-                    Talebiniz
-                </h3>
-                <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 text-sm">
-                    {!! $record->content !!}
-                </div>
+        </div>
+        <!-- Right column: ticket content -->
+        <div class="md:w-2/3 md:pl-6 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 mt-6 md:mt-0 pt-4 md:pt-0 md:pl-4">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <x-filament::icon icon="heroicon-o-document-text" class="w-5 h-5 text-gray-400" />
+                Talep İçeriği
+            </h3>
+            <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 text-sm">
+                {!! $record->content !!}
             </div>
         </div>
+    </div>
+</div>
 
         {{-- Rating Modal --}}
         <div
@@ -315,6 +276,7 @@
                                                 <svg 
                                                     class="w-8 h-8 transition-colors duration-200" 
                                                     x-bind:class="(hoverValue > 0 ? hoverValue >= star : ratingValue >= star) ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'"
+                                                    x-bind:style="(hoverValue > 0 ? hoverValue >= star : ratingValue >= star) ? 'color: #facc15' : ''"
                                                     xmlns="http://www.w3.org/2000/svg" 
                                                     viewBox="0 0 24 24" 
                                                     fill="currentColor" 
