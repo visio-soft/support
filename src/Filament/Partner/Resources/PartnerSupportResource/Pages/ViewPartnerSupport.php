@@ -99,7 +99,10 @@ class ViewPartnerSupport extends ViewRecord
 
         $reply->update(['rating' => $rating]);
 
+        // Force parent update to trigger Livewire re-render
+        $this->record->touch();
         $this->record->refresh();
+        $this->record->unsetRelation('publicReplies');
 
         Notification::make()
             ->success()
