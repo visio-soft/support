@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('partner_support_replies', function (Blueprint $table) {
-            $table->unsignedTinyInteger('rating')->nullable()->after('content');
-        });
+        if (Schema::hasTable('partner_support_replies') && !Schema::hasColumn('partner_support_replies', 'rating')) {
+            Schema::table('partner_support_replies', function (Blueprint $table) {
+                $table->unsignedTinyInteger('rating')->nullable()->after('content');
+            });
+        }
     }
 
     /**
